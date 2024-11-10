@@ -1,2 +1,4 @@
 jass-kit
 numpy
+flask
+logging
