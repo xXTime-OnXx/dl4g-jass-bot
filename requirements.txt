@@ -2,3 +2,4 @@ jass-kit
 numpy
 flask
 logging
+gunicorn
