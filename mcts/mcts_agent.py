@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 
 from jass.game.game_util import *
@@ -28,7 +29,7 @@ def calculate_trump_selection_score(cards, trump: int) -> int:
     return score
 
 
-class MCTSAgent(Agent):
+class AgentTrumpMCTSSchieber(Agent):
     def __init__(self, n_simulations=200, n_determinizations=10):
         super().__init__()
         self._rule = RuleSchieber()
@@ -70,7 +71,9 @@ class MCTSAgent(Agent):
         
         # Choose the card with the best score
         best_card_index = np.argmax(card_scores)
-        return valid_card_indices[best_card_index]
+        best_card = valid_card_indices[best_card_index]
+
+        return best_card
 
     def _create_determinization(self, obs: GameObservation) -> np.ndarray:
         """
@@ -123,9 +126,9 @@ class MCTSAgent(Agent):
             # For each valid card, simulate the outcome by reinitializing the game simulation
             for i, card in enumerate(valid_card_indices):
                 sim_game = GameSim(rule=self._rule)
-                sim_game.init_from_state(obs)
-                sim_game._state.hands = hands
-                
+                sim_game.init_from_state(copy.deepcopy(obs))
+                sim_game._state.hands = copy.deepcopy(hands)
+
                 # Simulate playing the card
                 sim_game.action_play_card(card)
                 

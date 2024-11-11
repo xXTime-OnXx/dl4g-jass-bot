@@ -26,7 +26,7 @@ def calculate_trump_selection_score(cards, trump: int) -> int:
             score += no_trump_score[card_offset]
     return score
 
-class MyAgent(Agent):
+class AgentTrumpSchieber(Agent):
     def __init__(self):
         super().__init__()
         # we need a rule object to determine the valid cards
@@ -61,9 +61,7 @@ class MyAgent(Agent):
             the card to play, int encoded as defined in jass.game.const
         """
         valid_cards = self._rule.get_valid_cards_from_obs(obs)
-        print(f'hand: {np.flatnonzero(valid_cards)}')
 
         # we use the global random number generator here
         random_choice = np.random.choice(np.flatnonzero(valid_cards))
-        print(f'choice: {random_choice}')
         return random_choice
