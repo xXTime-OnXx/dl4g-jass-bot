@@ -38,4 +38,4 @@ def create_app():
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=8000)  # Set the port to 8000
+    app.run(host='0.0.0.0', port=8888)  # Set the port to 8000
