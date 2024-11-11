@@ -11,9 +11,6 @@ import os
 def create_app():
     app = PlayerServiceApp('player_service')
     
-    app.config['ENV'] = os.environ.get('FLASK_ENV', 'production')
-    app.config['DEBUG'] = app.config['ENV'] == 'development'
-
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     logger = logging.getLogger('player_service')
 
@@ -28,7 +25,6 @@ def create_app():
     
     return app
 
-# Make sure this block is at the end of your main file
 if __name__ == '__main__':
     app = create_app()
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8888)))
+    app.run(host='0.0.0.0', port=8888)
