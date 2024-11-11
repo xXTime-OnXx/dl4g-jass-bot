@@ -24,7 +24,7 @@ def create_app():
     # app.config.from_pyfile('my_player_service.cfg', silent=False)
 
     # add some players
-    app.add_player('random', AgentTrumpMCTSSchieber())
+    app.add_player('mcts', AgentTrumpMCTSSchieber())
 
     # Add a before_request hook to log each incoming request
     @app.before_request
