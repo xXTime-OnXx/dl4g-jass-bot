@@ -7,6 +7,26 @@ from jass.game.const import *
 from jass.game.rule_schieber import RuleSchieber
 from jass.agents.agent import Agent
 from jass.game.game_sim import GameSim
+import logging
+
+# Configure logging to output to Jupyter Notebook
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# Check if there are handlers already and clear them to prevent duplicate logs
+if not logger.hasHandlers():
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
+else:
+    logger.handlers.clear()  # Clear existing handlers
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    stream_handler.setFormatter(formatter)
+    logger.addHandler(stream_handler)
 
 
 # score if the color is trump
@@ -30,51 +50,76 @@ def calculate_trump_selection_score(cards, trump: int) -> int:
 
 
 class AgentTrumpMCTSSchieber(Agent):
-    def __init__(self, n_simulations=200, n_determinizations=10):
+    def __init__(self, n_simulations=1, n_determinizations=5):
         super().__init__()
         self._rule = RuleSchieber()
         self.n_simulations = n_simulations
         self.n_determinizations = n_determinizations
     
-    def action_trump(self, obs: GameObservation) -> int:
-        """
-        Determine trump action for the given observation.
-        The trump selection will be handled using a heuristic as done in previous tasks.
-        """
-        card_list = convert_one_hot_encoded_cards_to_int_encoded_list(obs.hand)
-        scores = [calculate_trump_selection_score(card_list, trump) for trump in [0, 1, 2, 3]]
-        highest_score_index = scores.index(max(scores))
-        if scores[highest_score_index] > 68:
-            return highest_score_index
-        if obs.forehand == -1:
-            return PUSH
-        return highest_score_index
-
-    
     def action_play_card(self, obs: GameObservation) -> int:
         """
-        Perform the Monte Carlo Tree Search (MCTS) to select the best card to play
-        based on multiple determinizations of the game state.
+        Select the best card to play using a combination of rule-based logic and MCTS, with detailed logging.
         """
+        logger.debug("Starting action_play_card for player %d", obs.player)
+
         valid_cards = self._rule.get_valid_cards_from_obs(obs)
         valid_card_indices = np.flatnonzero(valid_cards)
+        
+        logger.debug("Valid cards for player %d: %s", obs.player, valid_card_indices)
 
+        # If only one valid card, play it directly
         if len(valid_card_indices) == 1:
-            # Only one valid card, no need for MCTS
+            logger.debug("Only one valid card found, playing card: %d", valid_card_indices[0])
             return valid_card_indices[0]
 
-        # Perform multiple determinizations and MCTS simulations
+        # Rule-based heuristic checks
+        trump_suit = obs.trump
+        current_trick_points = sum(self._rule.point_value(card, trump_suit) for card in obs.current_trick if card != -1)
+        highest_card_in_trick = max((card for card in obs.current_trick if card != -1), key=lambda x: self._rule.card_order(x, trump_suit), default=None)
+        teammate_index = (obs.trick_first_player[obs.nr_tricks] + 2) % 4
+        
+        # Check if teammate holds the highest card in the current trick
+        teammate_has_highest = highest_card_in_trick is not None and obs.trick_winner[obs.nr_tricks] == teammate_index
+        logger.debug("Current trick points: %d, highest card in trick: %s", current_trick_points, highest_card_in_trick)
+        print("TEST1")
+        # Apply heuristic rules first
+        for card in valid_card_indices:
+            card_suit = color_of_card[card]
+            card_value = self._rule.point_value(card, trump_suit)
+            print("TEST2")
+            # Rule 1: Play a strong trump if trick points are high and trump can win
+            if current_trick_points >= 25 and card_suit == trump_suit:
+                if highest_card_in_trick is None or self._rule.card_order(card, trump_suit) > self._rule.card_order(highest_card_in_trick, trump_suit):
+                    logger.debug("Rule 1 applied: Playing trump card %d with high trick points %d", card, current_trick_points)
+                    return card
+
+            # Rule 2: Play the highest card if it can win and no trump in trick
+            if highest_card_in_trick and card_suit == color_of_card[highest_card_in_trick] and self._rule.card_order(card, trump_suit) > self._rule.card_order(highest_card_in_trick, trump_suit):
+                logger.debug("Rule 2 applied: Playing highest card %d to beat current highest %d", card, highest_card_in_trick)
+                return card
+
+            # Rule 3: Play a medium-value non-trump card if teammate has the highest card in trick
+            if teammate_has_highest and card_value < 10 and card_suit != trump_suit:
+                logger.debug("Rule 3 applied: Playing low-value card %d as teammate has highest card %d", card, highest_card_in_trick)
+                return card
+
+        # If no decision from heuristics, use MCTS to determine the best card
+        logger.debug("No heuristic rules applied. Starting MCTS simulations.")
         card_scores = np.zeros(len(valid_card_indices))
         
-        for _ in range(self.n_determinizations):
+        for determinization_idx in range(self.n_determinizations):
             determinization_hands = self._create_determinization(obs)
-            card_scores += self._run_mcts_for_determinization(determinization_hands, obs, valid_card_indices)
+            determinization_scores = self._run_mcts_for_determinization(determinization_hands, obs, valid_card_indices)
+            card_scores += determinization_scores
+            logger.debug("Determinization %d: Scores from MCTS simulation: %s", determinization_idx, determinization_scores)
         
-        # Choose the card with the best score
+        # Select the card with the best score from MCTS
         best_card_index = np.argmax(card_scores)
         best_card = valid_card_indices[best_card_index]
+        logger.debug("MCTS complete. Best card chosen: %d with score %f", best_card, card_scores[best_card_index])
 
         return best_card
+
 
     def _create_determinization(self, obs: GameObservation) -> np.ndarray:
         """
