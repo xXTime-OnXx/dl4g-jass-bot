@@ -50,6 +50,7 @@ class AgentTrumpMCTSSchieber(Agent):
             return PUSH
         return highest_score_index
 
+    
     def action_play_card(self, obs: GameObservation) -> int:
         """
         Perform the Monte Carlo Tree Search (MCTS) to select the best card to play
