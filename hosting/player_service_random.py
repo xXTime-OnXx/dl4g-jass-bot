@@ -1,6 +1,5 @@
 from jass.service.player_service_app import PlayerServiceApp
 from jass.agents.agent_random_schieber import AgentRandomSchieber
-from mcts.mcts_agent import MCTSAgent
 import logging
 from flask import request
 
