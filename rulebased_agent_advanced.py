@@ -42,7 +42,7 @@ def calculate_trump_selection_score(cards, trump: int) -> int:
             score += no_trump_score[card_offset]
     return score
 
-class AgentRuleBasedSchieber(Agent):
+class AgentRuleBasedSchieberAdvanced(Agent):
     def __init__(self):
         super().__init__()
         self._rule = RuleSchieber()
@@ -67,23 +67,42 @@ class AgentRuleBasedSchieber(Agent):
         )
 
         teammate_index = (obs.trick_first_player[obs.nr_tricks] + 2) % 4
-        teammate_has_highest = highest_card_in_trick is not None and obs.trick_winner[obs.nr_tricks] == teammate_index
+        teammate_has_highest = (
+            highest_card_in_trick is not None and 
+            obs.trick_winner[obs.nr_tricks] == teammate_index and 
+            color_of_card[highest_card_in_trick] == trump_suit
+        )
 
+        remaining_trumps = np.sum([1 for card in obs.current_trick if color_of_card[card] == trump_suit])
+
+        # Fall 1: Partner hat die höchste Karte und es gibt wenige Trümpfe
+        if teammate_has_highest and remaining_trumps <= 2:
+            # Suche eine Karte mit möglichst hohem Wert, die aber die Karte des Partners nicht schlägt
+            lower_value_cards = [c for c in valid_card_indices if get_card_order(c, trump_suit) < get_card_order(highest_card_in_trick, trump_suit)]
+            if lower_value_cards:
+                best_card = max(lower_value_cards, key=lambda x: calculate_point_value(x, trump_suit))
+                print("Teammate push")
+                return best_card
+
+        # Fall 2: Hohe Stichpunkte und Trumpfkarte
+        if current_trick_points >= 27:
+            for card in valid_card_indices:
+                if color_of_card[card] == trump_suit:
+                    if highest_card_in_trick is None or get_card_order(card, trump_suit) > get_card_order(highest_card_in_trick, trump_suit):
+                        print("Stechen")
+                        return card
+
+        # Fall 3: Trumpf-Konter
         for card in valid_card_indices:
             card_suit = color_of_card[card]
-            card_value = calculate_point_value(card, trump_suit)
-
-            if current_trick_points >= 27 and card_suit == trump_suit:
-                if highest_card_in_trick is None or get_card_order(card, trump_suit) > get_card_order(highest_card_in_trick, trump_suit):
-                    return card
-
             if highest_card_in_trick and card_suit == color_of_card[highest_card_in_trick] and get_card_order(card, trump_suit) > get_card_order(highest_card_in_trick, trump_suit):
+                print("Trumpf Konter")
                 return card
 
-            if teammate_has_highest and card_value < 10 and card_suit != trump_suit:
-                return card
-
+        # Zufällige Auswahl, falls keine Regel zutrifft
         return np.random.choice(valid_card_indices)
+
+
 
     def action_trump(self, obs: GameObservation) -> int:
         """
