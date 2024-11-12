@@ -6,22 +6,17 @@ from rulebased_agent import AgentRuleBasedSchieber
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('player_service')
 
-import os
 
 def create_app():
     app = PlayerServiceApp('player_service')
-    
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    logger = logging.getLogger('player_service')
-
+    app.add_player('rule', AgentRuleBasedSchieber())
     @app.before_request
     def log_request_info():
         logger.info(f"Incoming request: {request.method} {request.url}")
         if request.data:
             logger.debug(f"Request Data: {request.data}")
     
-    # Add the MCTS player
-    app.add_player('rule', AgentRuleBasedSchieber())
+
     
     return app
 
