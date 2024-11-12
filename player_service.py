@@ -1,7 +1,7 @@
 from jass.service.player_service_app import PlayerServiceApp
 import logging
 from flask import request
-from rulebased_agent import AgentRuleBasedSchieber
+from rulebased_agent_advanced import AgentRuleBasedSchieberAdvanced
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('player_service')
@@ -21,7 +21,7 @@ def create_app():
             logger.debug(f"Request Data: {request.data}")
     
     # Add the MCTS player
-    app.add_player('rule', AgentRuleBasedSchieber())
+    app.add_player('rule', AgentRuleBasedSchieberAdvanced())
     
     return app
 
