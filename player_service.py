@@ -9,15 +9,15 @@ logger = logging.getLogger('player_service')
 
 def create_app():
     app = PlayerServiceApp('player_service')
-    app.add_player('rule', AgentRuleBasedSchieber())
+
+    # Add the rule based player
+    app.add_player('rule', AgentRuleBasedSchieberAdvanced())
+
     @app.before_request
     def log_request_info():
         logger.info(f"Incoming request: {request.method} {request.url}")
         if request.data:
             logger.debug(f"Request Data: {request.data}")
-    
-    # Add the MCTS player
-    app.add_player('rule', AgentRuleBasedSchieberAdvanced())
     
     return app
 
