@@ -8,6 +8,7 @@ from jass.game.rule_schieber import RuleSchieber
 from jass.agents.agent import Agent
 from jass.game.game_sim import GameSim
 import logging
+from tensorflow.keras.models import load_model
 
 # Configure logging to output to Jupyter Notebook
 logger = logging.getLogger(__name__)
@@ -107,12 +108,13 @@ def highest_card_in_trick(trick, obs: GameObservation):
         return highest_card, winner
         
 
-class AgentTrumpMCTSSchieber(Agent):
+class AgentDLTrumpMCTSSchieber(Agent):
     def __init__(self, n_simulations=1, n_determinizations=90):
         super().__init__()
         self._rule = RuleSchieber()
         self.n_simulations = n_simulations
         self.n_determinizations = n_determinizations
+        self.model = load_model('trump_model_592.h5')
     
     def action_play_card(self, obs: GameObservation) -> int:
         """
@@ -260,14 +262,49 @@ class AgentTrumpMCTSSchieber(Agent):
         return player % 2
     
     def action_trump(self, obs: GameObservation) -> int:
-        """
-        Determine trump action for the given observation.
-        """
-        card_list = convert_one_hot_encoded_cards_to_int_encoded_list(obs.hand)
-        scores = [calculate_trump_selection_score(card_list, trump) for trump in [0, 1, 2, 3]]
-        highest_score_index = scores.index(max(scores))
-        if scores[highest_score_index] > 68:
-            return highest_score_index
+        hand = obs.hand
+
         if obs.forehand == -1:
-            return PUSH
+            hand = np.append(hand, 1)
+        else:
+            hand = np.append(hand, 0)
+        logger.debug("Hand: " + str(hand))
+        
+        hand = hand.reshape(1, -1)
+        
+        model = self.model
+        probabilities = model.predict(hand)
+        logger.debug("Model probabilities: " + str(probabilities))
+
+
+        trump_categories = [
+            "trump_DIAMONDS",
+            "trump_HEARTS",
+            "trump_SPADES",
+            "trump_CLUBS",
+            "trump_OBE_ABE",
+            "trump_UNE_UFE",
+            "trump_PUSH",
+        ]
+
+        scores = probabilities[0]  
+        
+        trump_push_index = trump_categories.index("trump_PUSH")
+        ignored_indices = [
+            trump_categories.index("trump_OBE_ABE"),
+            trump_categories.index("trump_UNE_UFE"),
+        ]
+
+        if scores[trump_push_index] > 0.8:
+            logger.debug("Decision: Push (Threshold exceeded)")
+            return trump_push_index
+
+        filtered_scores = [
+            score if idx not in ignored_indices else -1 for idx, score in enumerate(scores)
+        ]
+
+        highest_score_index = filtered_scores.index(max(filtered_scores))
+        logger.debug(f"Filtered scores: {filtered_scores}")
+        logger.debug(f"Highest score index: {highest_score_index}")
+
         return highest_score_index
