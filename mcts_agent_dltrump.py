@@ -115,7 +115,7 @@ class AgentDLTrumpMCTSSchieber(Agent):
         self._rule = RuleSchieber()
         self.n_simulations = n_simulations
         self.n_determinizations = n_determinizations
-        self.model = load_model('midterm/trump_model_592.h5')
+        self.model = load_model('trump_model_592.h5')
     
     def action_play_card(self, obs: GameObservation) -> int:
         """
