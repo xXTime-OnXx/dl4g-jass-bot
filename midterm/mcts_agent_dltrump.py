@@ -9,6 +9,7 @@ from jass.agents.agent import Agent
 from jass.game.game_sim import GameSim
 import logging
 from tensorflow.keras.models import load_model
+import time
 
 # Configure logging to output to Jupyter Notebook
 logger = logging.getLogger(__name__)
@@ -127,16 +128,12 @@ class AgentDLTrumpMCTSSchieber(Agent):
         if len(valid_card_indices) == 1:
             return valid_card_indices[0]
 
-        # check if stabbing (staeche) or not
+        # check if staeche or not
         trump_suit = obs.trump
         current_trick_points = sum(calculate_point_value(card, trump_suit) for card in obs.current_trick if card != -1)
-        
-        highest_card, winner = highest_card_in_trick(obs.current_trick, obs)
-        winner_id = (obs.trick_first_player[obs.nr_tricks] + winner) % 4
 
         for card in valid_card_indices:
             card_suit = color_of_card[card]
-            card_value = calculate_point_value(card, trump_suit)
 
             # falls eigene karte besser als gespielte karten -> stechen
             print(f'trick: {obs.current_trick}, points: {current_trick_points}')
@@ -152,7 +149,6 @@ class AgentDLTrumpMCTSSchieber(Agent):
         
         for card in valid_card_indices:
             card_suit = color_of_card[card]
-            card_value = calculate_point_value(card, trump_suit)
 
             trick = copy.deepcopy(obs.current_trick)
             card_index = len([card for card in trick if card != -1])
@@ -162,10 +158,10 @@ class AgentDLTrumpMCTSSchieber(Agent):
                 return card
 
         # If no decision from heuristics, use MCTS to determine the best card
-        #logger.debug("No heuristic rules applied. Starting MCTS simulations.")
         card_scores = np.zeros(len(valid_card_indices))
+        start_time = time.time()
         
-        for determinization_idx in range(self.n_determinizations):
+        while time.time() < start_time + 9.5:
             determinization_hands = self._create_determinization(obs)
             determinization_scores = self._run_mcts_for_determinization(determinization_hands, obs, valid_card_indices)
             card_scores += determinization_scores
