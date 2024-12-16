@@ -65,3 +65,4 @@ maildir
 
 # Large Data
 /data/games/
+/data/card_prediction/
