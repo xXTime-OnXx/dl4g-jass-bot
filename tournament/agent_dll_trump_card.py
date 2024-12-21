@@ -32,7 +32,7 @@ else:
     
         
 
-class AgentDLTrumpMCTSSchieber(Agent):
+class AgentDLTrumpCardPlay(Agent):
     
     def __init__(self, n_simulations=1, n_determinizations=90):
         super().__init__()
@@ -40,7 +40,7 @@ class AgentDLTrumpMCTSSchieber(Agent):
         self.n_simulations = n_simulations
         self.n_determinizations = n_determinizations
         self.trump_model = load_model('../model/trump_model_592.h5')
-        self.play_card_model = load_model('../model/card_prediciton_v01.keras')
+        self.play_card_model = load_model('../model/card_prediction_v02.keras')
     
     
     def action_play_card(self, obs: GameObservation) -> int:
@@ -48,17 +48,26 @@ class AgentDLTrumpMCTSSchieber(Agent):
         Select the best card to play using rule-based logic only.
         """
         # play single valid card available
-        valid_cards = self._rule.get_valid_cards_from_obs(obs)
-        valid_card_indices = np.flatnonzero(valid_cards)
+        valid_cards_encoded = self._rule.get_valid_cards_from_obs(obs)
+        valid_card_indices = np.flatnonzero(valid_cards_encoded)
 
         if len(valid_card_indices) == 1:
             return valid_card_indices[0]
+        
+        played_cards = obs.tricks.flatten()
+        played_cards = played_cards[played_cards != -1]  # Remove unplayed card markers (-1)
+        played_cards_encoded = get_cards_encoded(played_cards)
+        
+        trump_encoded = [np.int32(obs.trump == trump) for trump in trump_ints]
 
-        # TODO: prepare data for model predition
-        best_card = self.play_card_model(None)
+        # TODO: prepare data for model predition [played_cards, valid_cards, trump]
+        model_input = np.concatenate([np.array(played_cards_encoded), np.array(valid_cards_encoded), np.array(trump_encoded)])
+        prediction = self.play_card_model(model_input.reshape(1, -1))
         
         # TODO: map model output to return card value
-        return best_card
+        highest_index = np.argmax(prediction)
+        logger.debug(f"Highest score index: {convert_int_encoded_cards_to_str_encoded([highest_index])}")
+        return highest_index
     
     
     def action_trump(self, obs: GameObservation) -> int:

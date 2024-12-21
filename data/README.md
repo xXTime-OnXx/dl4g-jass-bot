@@ -25,3 +25,13 @@ https://elearning.hslu.ch/ilias/ilias.php?baseClass=ilrepositorygui&cmd=view&ref
 
 - Statistics about the player ids is available in the file stat/player_all_stat.json
 - It could be used to filter games for training, for example only using ids of the better than average players
+
+## Card Prediction
+
+The directory `card_prediction` stores the dataset for the card play training.
+
+Datasets:
+| Version    | File | Description |
+| -------- | ------- | ------------------------------------ |
+| v1  | `card_prediction_0001.csv`    | This is the first dataset version to train a simple card_play model |
+| v2 | `card_prediction_0002.csv`    | This dataset is based on v1 but uses the column order that is given by the `jasskit-library` to simplify the usage of the model. |
