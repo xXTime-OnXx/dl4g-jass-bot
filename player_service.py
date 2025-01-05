@@ -1,8 +1,8 @@
-from jass.service.player_service_app import PlayerServiceApp
 import logging
+
 from flask import request
-from midterm.hosting.rulebased_agent_advanced import AgentRuleBasedSchieberAdvanced
-from midterm.hosting.mcts_agent_dltrump import AgentDLTrumpMCTSSchieber
+from jass.service.player_service_app import PlayerServiceApp
+from mcts_ucb_dltrump import AgentDLTrumpUCBMCTSSchieber
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('player_service')
@@ -12,7 +12,7 @@ def create_app():
     app = PlayerServiceApp('player_service')
 
     # Add the rule based player
-    app.add_player('rule', AgentDLTrumpMCTSSchieber())
+    app.add_player('rule', AgentDLTrumpUCBMCTSSchieber())
 
     @app.before_request
     def log_request_info():

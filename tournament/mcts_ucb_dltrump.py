@@ -91,7 +91,7 @@ class AgentDLTrumpUCBMCTSSchieber(Agent):
     def __init__(self):
         super().__init__()
         self._rule = RuleSchieber()
-        self.model = load_model('trump_model_592.h5')
+        self.model = load_model('../model/trump_model_592.h5')
         self.TIME_LIMIT = 9.5  
 
     def action_play_card(self, obs: GameObservation) -> int:
